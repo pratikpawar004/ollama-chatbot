@@ -1,4 +1,4 @@
-# 🗪 Ollama Chatbot (Real-Time Streaming using Flask)
+# 💬 Ollama Chatbot (Real-Time Streaming using Flask)
 
 A fast and modern **real-time chatbot web app** built using local **Ollama LLaMA models**.
 It supports live streaming replies using SSE (Server-Sent Events) and shows Ollama live status in the footer.
