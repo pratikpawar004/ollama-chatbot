@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ollama Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 700px;
+            flex: 1 0 auto;
+            background-color: #ffffff;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            margin: 20px auto 0 auto;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #e5ddd5;
+        }
+
+        .message {
+            padding: 12px 20px;
+            border-radius: 20px;
+            max-width: 70%;
+            word-wrap: break-word;
+            line-height: 1.5;
+            font-size: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .user { background-color: #dcf8c6; align-self: flex-end; }
+        .bot { background-color: #ffffff; align-self: flex-start; }
+
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-top: 1px solid #ccc;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            outline: none;
+            font-size: 16px;
+            background-color: #ffffff;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .chat-input button {
+            margin-left: 10px;
+            padding: 12px 25px;
+            background-color: #128c7e;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        .chat-input button:hover { background-color: #075e54; }
+
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #555;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 600px) {
+            .chat-container { width: 100%; height: auto; border-radius: 0; }
+            .message { font-size: 16px; max-width: 80%; }
+            .chat-input input, .chat-input button { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="chat-form" class="chat-input">
+            <!-- Input with suggestions -->
+            <input type="text" id="user_input" placeholder="Type a message..." list="suggestions" required autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <footer>
+        <small>{{ ollama_status }} — ensure your local Ollama model is running.</small>
+    </footer>
+
+    <script>
+        const form = document.getElementById("chat-form");
+        const input = document.getElementById("user_input");
+        const chatMessages = document.getElementById("chat-messages");
+        let evtSource = null;
+
+        function appendMessage(text, sender) {
+            const message = document.createElement("div");
+            message.classList.add("message", sender);
+            message.textContent = text;
+
+            // Detect if user is at the bottom
+            const atBottom = chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight;
+
+            chatMessages.appendChild(message);
+
+            if (atBottom) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const userText = input.value.trim();
+            if (!userText) return;
+
+            appendMessage(userText, "user");
+            input.value = "";
+
+            if (evtSource) evtSource.close();
+            evtSource = new EventSource("/chat?user_input=" + encodeURIComponent(userText));
+
+            let botMessage = "";
+            appendMessage("", "bot");
+            const botDivs = chatMessages.querySelectorAll(".bot");
+            const lastBotDiv = botDivs[botDivs.length - 1];
+
+            evtSource.onmessage = function(e) {
+                if (e.data === "[DONE]") { evtSource.close(); }
+                else {
+                    botMessage += e.data;
+                    lastBotDiv.textContent = botMessage;
+                    // Only scroll if user is at bottom
+                    const atBottom = chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight;
+                    if (atBottom) chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            };
+
+            evtSource.onerror = function() { evtSource.close(); };
+        });
+    </script>
+</body>
+</html>
