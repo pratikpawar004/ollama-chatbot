@@ -43,7 +43,7 @@ Type any message, and the chatbot responds stream-by-stream, just like ChatGPT t
 
 ```bash
 git clone https://github.com/yourusername/document-summarizer.git
-cd document-summarizer
+cd ollama-chatbot
 ```
 2. **Create a virtual environment (recommended)**
 ```bash
